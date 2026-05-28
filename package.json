@@ -1,0 +1,23 @@
+{
+  "name": "blueee",
+  "version": "1.0.0",
+  "description": "Universal AI Connector for Claude Code",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js start",
+    "setup": "node server.js setup",
+    "status": "node server.js status"
+  },
+  "bin": {
+    "blueee": "server.js"
+  },
+  "keywords": [
+    "ai",
+    "claude",
+    "proxy",
+    "connector"
+  ],
+  "author": "",
+  "license": "MIT"
+}
