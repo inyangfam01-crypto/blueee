@@ -1,85 +1,70 @@
-# Blueee
+# Blueee 🌊
 
-**Universal AI Connector for Claude Code**
-
-Run your own local AI proxy server and connect Claude Code to any AI provider.
-
-## Install
-
-```bash
-# Clone the repo
-git clone https://github.com/inyangfam01-crypto/blueee.git
-cd blueee
-
-# Install dependencies (if any)
-npm install
-```
+Universal AI Connector for Claude Code — runs locally with a web UI for easy setup.
 
 ## Quick Start
 
 ```bash
-# 1. Setup - choose your provider and enter API key
-node server.js setup
+git clone https://github.com/inyangfam01-crypto/blueee.git
+cd blueee
+node server.js
+```
 
-# 2. Start the server
-node server.js start
+That's it! The server will:
+1. Start automatically
+2. Open your browser to the setup page
+3. Enter your API key and select your AI provider
 
-# 3. Connect Claude Code
-# In another terminal:
+## Features
+
+- 🌐 **Web UI Setup** — No CLI prompts, just fill out a form in your browser
+- 🔄 **Multi-Provider Support** — Connect to:
+  - BluesMinds
+  - Nvidia NIM
+  - Google Gemini
+  - Grok / xAI
+  - Cerebras
+  - Mistral
+- 📱 **Local Network Access** — Access via `http://localhost:8080` or your IP address
+- 🔒 **Local Storage** — Your API keys stay on your machine
+
+## Usage with Claude Code
+
+After setup, in another terminal:
+
+```bash
 export ANTHROPIC_API_KEY=sk-dummy
 export ANTHROPIC_BASE_URL=http://localhost:8080
-claude --model <model-name>
+claude --model claude-3-5-sonnet-20241022
 ```
 
-Or use npm scripts:
+## Access from Other Devices
+
+Find your local IP:
 ```bash
-npm run setup
-npm start
-```
-
-## Supported Providers
-
-| # | Provider | Endpoint |
-|---|----------|----------|
-| 1 | BluesMinds | api.bluesminds.com |
-| 2 | Nvidia NIM | integrate.api.nvidia.com |
-| 3 | Google Gemini | generativelanguage.googleapis.com |
-| 4 | Grok / xAI | api.x.ai |
-| 5 | Cerebras | api.cerebras.ai |
-| 6 | Mistral | api.mistral.ai |
-
-## Requirements
-
-- Node.js 18+
-- Claude Code CLI (`npm install -g @anthropic-ai/claude-code`)
-
-## How It Works
-
-1. **Blueee** runs as a local HTTP server
-2. You configure it with your AI provider and API key
-3. Claude Code connects to Blueee (localhost)
-4. Blueee proxies requests to your chosen AI provider, injecting your API key
-
-## Commands
-
-```bash
-node server.js setup   # Configure provider and API key
-node server.js start   # Start the proxy server
-node server.js status  # Show current configuration
-```
-
-## Access via IP
-
-The server binds to `0.0.0.0` so you can access it via your local IP:
-
-```bash
-# Find your IP
 hostname -I | awk '{print $1}'
-
-# Use in Claude Code
-export ANTHROPIC_BASE_URL=http://YOUR_IP:8080
 ```
 
-## License
+Then use:
+```bash
+export ANTHROPIC_BASE_URL=http://192.168.1.X:8080
+```
 
-MIT
+## Reconfigure
+
+Just open `http://localhost:8080` in your browser to change provider or API key.
+
+## Troubleshooting
+
+**Port already in use:**
+```bash
+# Kill existing process
+lsof -ti:8080 | xargs kill -9
+# Or change port in the web form
+```
+
+**Browser doesn't open automatically:**
+```bash
+node server.js
+# Then manually open http://localhost:8080
+```
