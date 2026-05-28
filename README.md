@@ -1,36 +1,27 @@
-# Blueee 🌊
+# Blueee - Universal AI Provider Connector
 
-Universal AI Connector for Claude Code — runs locally with a web UI for easy setup.
+A local proxy server with web UI for connecting Claude Code to any AI provider.
 
 ## Quick Start
 
 ```bash
+# Clone
 git clone https://github.com/inyangfam01-crypto/blueee.git
 cd blueee
-node server.js
+
+# Run
+python3 server.py
 ```
 
 That's it! The server will:
 1. Start automatically
 2. Open your browser to the setup page
-3. Enter your API key and select your AI provider
+3. Select your AI provider and enter your API key
+4. Connect Claude Code
 
-## Features
+## Usage
 
-- 🌐 **Web UI Setup** — No CLI prompts, just fill out a form in your browser
-- 🔄 **Multi-Provider Support** — Connect to:
-  - BluesMinds
-  - Nvidia NIM
-  - Google Gemini
-  - Grok / xAI
-  - Cerebras
-  - Mistral
-- 📱 **Local Network Access** — Access via `http://localhost:8080` or your IP address
-- 🔒 **Local Storage** — Your API keys stay on your machine
-
-## Usage with Claude Code
-
-After setup, in another terminal:
+After setup, connect Claude Code:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-dummy
@@ -38,33 +29,26 @@ export ANTHROPIC_BASE_URL=http://localhost:8080
 claude --model claude-3-5-sonnet-20241022
 ```
 
-## Access from Other Devices
+Or via IP (from another device):
 
-Find your local IP:
-```bash
-hostname -I | awk '{print $1}'
-```
-
-Then use:
 ```bash
 export ANTHROPIC_BASE_URL=http://192.168.1.X:8080
 ```
 
+## Supported Providers
+
+- BluesMinds
+- Nvidia NIM
+- Google Gemini
+- Grok / xAI
+- Cerebras
+- Mistral
+
+## Requirements
+
+- Python 3.7+
+- No external dependencies (uses built-in libraries)
+
 ## Reconfigure
 
-Just open `http://localhost:8080` in your browser to change provider or API key.
-
-## Troubleshooting
-
-**Port already in use:**
-```bash
-# Kill existing process
-lsof -ti:8080 | xargs kill -9
-# Or change port in the web form
-```
-
-**Browser doesn't open automatically:**
-```bash
-node server.js
-# Then manually open http://localhost:8080
-```
+Just run `python3 server.py` again and visit the URL to change settings.
