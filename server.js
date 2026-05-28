@@ -1,17 +1,15 @@
-#!/usr/bin/env node
-
 const http = require('http');
 const https = require('https');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 
 // ANSI Colors
 const RED = '\x1b[31m';
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
-const MAGENTA = '\x1b[35m';
 const BOLD = '\x1b[1m';
 const NC = '\x1b[0m';
 
@@ -43,180 +41,228 @@ function saveConfig(config) {
 // Print banner
 function printBanner() {
   console.log(`${CYAN}${BOLD}
-  ██████╗ ██████╗ ███████╗██╗   ██╗    ██╗   ██╗██████╗ 
- ██╔════╝██╔═══██╗██╔════╝██║   ██║    ██║   ██║██╔══██╗
- ██║     ██║   ██║█████╗  ██║   ██║    ██║   ██║██████╔╝
- ██║     ██║   ██║██╔══╝  ██║   ██║    ██║   ██║██╔══██╗
- ╚██████╗╚██████╔╝██║     ╚██████╔╝    ╚██████╔╝██║  ██║
-  ╚═════╝ ╚═════╝ ╚═╝      ╚═════╝      ╚═════╝ ╚═╝  ╚═╝
-${NC}  ${MAGENTA}Universal AI Connector for Claude Code${NC}
-`);
+  ██████╗ ███████╗███████╗██╗     ██╗███╗   ██╗███████╗
+  ██╔══██╗██╔════╝██╔════╝██║     ██║████╗  ██║██╔════╝
+  ██║  ██║█████╗  █████╗  ██║     ██║██╔██╗ ██║█████╗  
+  ██║  ██║██╔══╝  ██╔══╝  ██║     ██║██║╚██╗██║██╔══╝  
+  ██████╔╝███████╗███████╗███████╗██║██║ ╚████║███████╗
+  ╚═════╝ ╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝
+  ${NC}${GREEN}Universal AI Connector for Claude Code${NC}
+  `);
 }
 
-// Print menu
-function printMenu() {
-  console.log(`${BOLD}Select your AI Provider:${NC}`);
-  console.log('');
-  for (const [num, provider] of Object.entries(PROVIDERS)) {
-    console.log(`  [${num}] ${provider.name.padEnd(15)} (${provider.baseUrl.replace('https://', '')})`);
-  }
-  console.log('');
-}
+// HTML for the web form
+function getHtmlForm(config = null) {
+  const providersHtml = Object.entries(PROVIDERS).map(([num, p]) => {
+    const selected = config?.provider == num ? 'selected' : '';
+    return `<option value="${num}" ${selected}>${p.name}</option>`;
+  }).join('');
 
-// Setup function
-async function setup() {
-  printBanner();
-  printMenu();
-
-  const readline = require('readline').createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  const question = (q) => new Promise((resolve) => readline.question(q, resolve));
-
-  // Get provider selection
-  let choice = await question('Enter your choice [1-6]: ');
-  while (!PROVIDERS[choice]) {
-    choice = await question('Invalid choice. Enter [1-6]: ');
-  }
-
-  const provider = PROVIDERS[choice];
-
-  // Get API key
-  const apiKey = await question(`Enter your ${provider.name} API Key: `);
-  while (!apiKey.trim()) {
-    console.log(`${RED}✗ API Key cannot be empty${NC}`);
-    return readline.close();
-  }
-
-  // Get port
-  const portInput = await question('Enter port [default: 8080]: ');
-  const port = parseInt(portInput) || 8080;
-
-  // Save config
-  const config = {
-    provider: provider.name,
-    baseUrl: provider.baseUrl,
-    apiKey: apiKey,
-    auth: provider.auth,
-    port: port
-  };
-  saveConfig(config);
-
-  console.log(`${GREEN}✓ Configuration saved!${NC}`);
-  console.log('');
-  console.log(`${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}`);
-  console.log(`  ${BOLD}Provider${NC}  : ${provider.name}`);
-  console.log(`  ${BOLD}Port${NC}     : ${port}`);
-  console.log(`  ${BOLD}Endpoint${NC} : http://localhost:${port}`);
-  console.log(`${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}`);
-  console.log('');
-  console.log(`${YELLOW}To connect Claude Code:${NC}`);
-  console.log(`  export ANTHROPIC_API_KEY=sk-dummy`);
-  console.log(`  export ANTHROPIC_BASE_URL=http://localhost:${port}`);
-  console.log(`  claude --model <model-name>`);
-  console.log('');
-
-  readline.close();
-  startServer(config);
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <title>Blueee Setup</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .container { background: white; border-radius: 16px; padding: 40px; width: 100%; max-width: 500px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+    h1 { color: #1a1a2e; margin-bottom: 8px; font-size: 28px; }
+    .subtitle { color: #666; margin-bottom: 32px; font-size: 14px; }
+    label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 14px; }
+    select, input { width: 100%; padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 16px; margin-bottom: 20px; transition: border-color 0.2s; }
+    select:focus, input:focus { outline: none; border-color: #4f46e5; }
+    button { width: 100%; padding: 16px; background: #4f46e5; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #4338ca; }
+    .info { background: #f3f4f6; padding: 16px; border-radius: 10px; margin-bottom: 20px; }
+    .info h3 { font-size: 14px; color: #333; margin-bottom: 8px; }
+    .info code { background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .success { background: #d1fae5; color: #065f46; padding: 16px; border-radius: 10px; margin-bottom: 20px; display: none; }
+    .error { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 10px; margin-bottom: 20px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Blueee Setup</h1>
+    <p class="subtitle">Universal AI Connector for Claude Code</p>
+    
+    <div class="success" id="success">✓ Configuration saved! Server running on port ${config?.port || 8080}</div>
+    <div class="error" id="error"></div>
+    
+    <form id="setupForm">
+      <label>Select AI Provider</label>
+      <select name="provider" required>
+        ${providersHtml}
+      </select>
+      
+      <label>API Key</label>
+      <input type="password" name="apiKey" placeholder="Paste your API key here" required>
+      
+      <label>Port (default: 8080)</label>
+      <input type="number" name="port" value="${config?.port || 8080}" min="1024" max="65535">
+      
+      <button type="submit">Save & Start Server</button>
+    </form>
+    
+    <div class="info">
+      <h3>📋 How to use with Claude Code:</h3>
+      <p style="margin-top: 12px; font-size: 13px; color: #555;">
+        <code>export ANTHROPIC_API_KEY=sk-dummy</code><br>
+        <code>export ANTHROPIC_BASE_URL=http://localhost:${config?.port || 8080}</code>
+      </p>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('setupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = {
+        provider: formData.get('provider'),
+        apiKey: formData.get('apiKey'),
+        port: parseInt(formData.get('port'))
+      };
+      
+      const res = await fetch('/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      
+      const result = await res.json();
+      if (result.success) {
+        document.getElementById('success').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+      } else {
+        document.getElementById('error').textContent = result.error;
+        document.getElementById('error').style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>`;
 }
 
 // Proxy request to AI provider
-function proxyRequest(config, req, res) {
-  const parsedUrl = url.parse(req.url, true);
-  const targetPath = parsedUrl.path;
-  
-  // Build headers
+function proxyRequest(req, res, config) {
+  const provider = PROVIDERS[config.provider];
+  if (!provider) return;
+
+  const targetUrl = provider.baseUrl + req.url;
   const headers = { ...req.headers };
-  delete headers['host'];
-  
-  if (config.auth === 'bearer') {
+  delete headers.host;
+
+  if (provider.auth === 'bearer') {
     headers['Authorization'] = `Bearer ${config.apiKey}`;
+  } else if (provider.auth === 'query') {
+    const u = new URL(targetUrl);
+    u.searchParams.set('key', config.apiKey);
+    req.url = u.pathname + u.search;
   }
 
-  // Build target URL
-  let targetUrl;
-  if (config.auth === 'query') {
-    targetUrl = `${config.baseUrl}${targetPath}&key=${config.apiKey}`;
-  } else {
-    targetUrl = `${config.baseUrl}${targetPath}`;
-  }
-
-  const options = {
-    hostname: url.parse(targetUrl).hostname,
-    port: 443,
-    path: url.parse(targetUrl).path,
+  const proxyReq = (provider.baseUrl.startsWith('https') ? https : http).request({
+    hostname: new URL(provider.baseUrl).hostname,
+    port: provider.baseUrl.startsWith('https') ? 443 : 80,
+    path: req.url,
     method: req.method,
-    headers: headers
-  };
-
-  const proxyReq = https.request(options, (proxyRes) => {
+    headers
+  }, (proxyRes) => {
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
     proxyRes.pipe(res, { end: true });
-  });
-
-  proxyReq.on('error', (err) => {
-    console.error(`${RED}✗ Proxy error: ${err.message}${NC}`);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: err.message }));
   });
 
   req.pipe(proxyReq, { end: true });
 }
 
-// Start server
+// HTTP Server
+let server;
+
 function startServer(config) {
-  const server = http.createServer((req, res) => {
-    // Add CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  server = http.createServer((req, res) => {
+    const parsedUrl = url.parse(req.url, true);
     
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
+    // Save config endpoint
+    if (parsedUrl.pathname === '/save' && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const newConfig = {
+            provider: data.provider,
+            apiKey: data.apiKey,
+            port: data.port
+          };
+          saveConfig(newConfig);
+          res.writeHead(200, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({success: true}));
+          
+          // Restart server on new port
+          if (server) server.close();
+          startServer(newConfig);
+        } catch (e) {
+          res.writeHead(400, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({error: e.message}));
+        }
+      });
       return;
     }
-
-    proxyRequest(config, req, res);
+    
+    // Serve form
+    if (parsedUrl.pathname === '/' || parsedUrl.pathname === '/index.html') {
+      res.writeHead(200, {'Content-Type': 'text/html'});
+      res.end(getHtmlForm(config));
+      return;
+    }
+    
+    // Proxy to AI provider
+    if (config && config.apiKey) {
+      proxyRequest(req, res, config);
+    } else {
+      res.writeHead(302, {'Location': '/'});
+      res.end();
+    }
   });
 
   server.listen(config.port, '0.0.0.0', () => {
-    console.log(`${GREEN}✓ Blueee server running on http://0.0.0.0:${config.port}${NC}`);
-    console.log(`${CYAN}Ready to accept Claude Code connections!${NC}`);
+    const ip = Object.values(require('os').networkInterfaces())
+      .flat().find(i => i.family === 'IPv4' && !i.internal)?.address || 'localhost';
+    
+    console.log(`${GREEN}✓ Blueee server running on http://localhost:${config.port}${NC}`);
+    console.log(`${GREEN}✓ Access via IP: http://${ip}:${config.port}${NC}`);
+    console.log(`${YELLOW}\n📋 Claude Code setup:${NC}`);
+    console.log(`  export ANTHROPIC_API_KEY=sk-dummy`);
+    console.log(`  export ANTHROPIC_BASE_URL=http://localhost:${config.port}`);
   });
 }
 
-// Main
-const args = process.argv.slice(2);
-if (args[0] === 'setup') {
-  setup();
-} else if (args[0] === 'start') {
-  const config = loadConfig();
-  if (!config) {
-    console.log(`${RED}✗ No configuration found. Run: node server.js setup${NC}`);
-    process.exit(1);
-  }
-  startServer(config);
-} else if (args[0] === 'status') {
-  const config = loadConfig();
-  if (config) {
-    console.log(`${GREEN}✓ Config loaded:${NC}`);
-    console.log(`  Provider: ${config.provider}`);
-    console.log(`  Port: ${config.port}`);
-    console.log(`  Endpoint: http://localhost:${config.port}`);
+// Auto-open browser
+function openBrowser(port) {
+  const ip = Object.values(require('os').networkInterfaces())
+    .flat().find(i => i.family === 'IPv4' && !i.internal)?.address || 'localhost';
+  const addr = `http://localhost:${port}`;
+  
+  console.log(`${CYAN}Opening browser...${NC}`);
+  
+  if (process.platform === 'darwin') {
+    exec(`open ${addr}`);
+  } else if (process.platform === 'win32') {
+    exec(`start ${addr}`);
   } else {
-    console.log(`${RED}✗ No configuration found. Run: node server.js setup${NC}`);
+    exec(`xdg-open ${addr} || firefox ${addr} || chromium ${addr}`);
   }
+}
+
+// Main
+printBanner();
+
+const config = loadConfig();
+if (config) {
+  console.log(`${GREEN}✓ Config found, starting server...${NC}\n`);
+  startServer(config);
 } else {
-  console.log(`${BOLD}Blueee - Universal AI Connector${NC}`);
-  console.log('');
-  console.log(`  ${CYAN}setup${NC}   - Configure provider and API key`);
-  console.log(`  ${CYAN}start${NC}   - Start the proxy server`);
-  console.log(`  ${CYAN}status${NC}  - Show current configuration`);
-  console.log('');
-  console.log(`  ${YELLOW}Usage:${NC}`);
-  console.log(`    node server.js setup`);
-  console.log(`    node server.js start`);
+  console.log(`${YELLOW}⚠ No config found, showing setup form...${NC}\n`);
+  startServer({ port: 8080 });
+  setTimeout(() => openBrowser(8080), 1500);
 }
